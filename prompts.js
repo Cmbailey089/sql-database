@@ -1,5 +1,5 @@
 const inquirer = require('inquirer');
-const Execute = require('./render');
+const Execute = require('./lib/render');
 require('console.table');
 
 const run = new Execute;
@@ -17,32 +17,44 @@ function loadOut() {
             value:'VIEW_DEPARTMENTS'
         },
         {
-            name: 'view all employees',
+            name: 'view all Employees',
             value: 'VIEW_EMPLOYEES'
         },
         {
-            name:'view all roles',
+            name:'view all Roles',
             value:'view_roles'
         },
         {
-            name:'add a ddepartment',
+            name:'add a Department',
             value:'add_department'
         },
         {
-            name:'add a role',
+            name:'add a Role',
             value:'add_role'
         },
         {
-            name:'add an employee',
+            name:'add an Employee',
             value:'add_employee'
         },
         {
-            name:'update employee role',
+            name:'update Employee role',
             value:'alter_employee'
         },
         {
-            name:'view all managers',
+            name:'view all Managers',
             value:'view managers'
+        },
+        {
+            name:'Remove Employee',
+            value:'remove employee'
+        },
+        {
+            name:'Remove role',
+            value:'remove role'
+        },
+        {
+            name:'Remove Department',
+            value:'remove dept'
         },
         {
             name: 'Quit',
@@ -55,25 +67,35 @@ function loadOut() {
     .then(({ choice }) => {
         
         switch(choice) {
-            case 'VIEW_DEPARTMENTS':
-            allDepartments();
+            case 'VIEW_DEPARTMENTS':allDepartments();
             break;
-            case 'VIEW_EMPLOYEES':
-            allEmployees();
+
+            case 'VIEW_EMPLOYEES':allEmployees();
             break;
-            case 'view_roles':
-            allRoles();
+
+            case 'view_roles':allRoles();
             break;
-            case 'add_department':
-            addDepartment();
+
+            case 'add_department':addDepartment();
             break;
-            case 'add_role':
-            addRole();
+
+            case 'add_role': addRole();
             break;
-            case 'add_employee':
-            addEmployee();
+
+            case 'add_employee': addEmployee();
             break;
-            case 'view managers':
+
+            case 'view managers':viewAllManagers();
+                break;
+
+            case 'remove employee':deleteEmployee();
+                break;
+
+            case 'remove role':deleteRole();
+                break;
+
+            case 'remove dept':deleteDepartmnet();
+                break;
 
             case 'alter_employee':
 
@@ -176,68 +198,112 @@ function addEmployee() {
         let firstName = res.first_name;
         let lastName = res.last_name;
         run.viewRoles()
-        .then(([rows])=>{
-            let role = rows;
+        .then(([row])=>{
+            let role = row;
             const roleChoices = role.map(({title,id})=>({
             name:title,
             value:id
         }))
         inquirer.prompt([
             {
-                name:'list',
+                type:'list',
+                name:'roles_id',
                 message:'What is the role for the new employee?',
                 choices:roleChoices
             }
         ])
         .then(res => {
-            var roleId = res.role_id;
+            var roleId = res.roles_id;
             run.viewAllMang().then(([row])=> {
                 let manager = row;
-                const mangChoices = manager.map(({id,name})=>({
-                    name:name,
-                    value:id
+                const mangChoices = manager.map(({first_name,manager_id})=>({
+                    name:first_name,
+                    value:manager_id
                 }))
                 inquirer.prompt([
                     {
-                        name:'list',
+                        type:'list',
+                        name:'manager_id',
                         message:'Who is this employees manager?',
-                        choices:[mangChoices, 'none']
+                        choices: mangChoices
                     }
                 ])
                 .then(res => {
-                    let employee ={ manager_id: res.managerId,
-                                    role_id: roleId,
+                    var employee ={ manager_id: res.managerId,
+                                    roles_id: roleId,
                                     first_name: firstName,
                                     last_name: lastName
                     }
-                   run.createEmployee(employee);
+                   run.createEmployee(employee)
+                   .then(()=>
+                        console.log(`Added ${firstName} ${lastName} to database.`))
+                        .then(()=> loadOut())  
                     })
-                    .then(()=> {
-                        console.log(`Added ${first_name} ${last_name} to database.`)
-                        .then(()=> loadOut());
-                    })
+                         
                 })
-            })
-            
+            })  
         })
-        })
-    }
+    })
+}
 
     function viewAllManagers() {
-        run.viewAllMang(employee_id).then(([line])=>{
+        run.viewAllMang().then(([line])=>{
             let managers =line;
         console.log('\n');
     console.table(managers)})
     .then(()=>loadOut());
     }
+
+    function deleteEmployee() {
+        run.viewEmployees().then(([row])=> {
+            let employee = row;
+            const employeeChoices = employee.map(({id,first_name})=>({
+                name:first_name,
+                value:id
+            }))
+            inquirer.prompt ([
+                {
+                    type:'list',
+                    name:'employee_id',
+                    message:'Who is getting canned?',
+                    choices:employeeChoices
+                }
+            ])
+            .then((res)=>{
+                let id = res.employee_id;
+                run.removeEmployee(id).then(()=>
+                console.log(`Employee removed from database.`))
+                .then(()=>loadOut());
+            })
+        })
+    }
+    
+    function deleteDepartmnet() {
+        run.viewDepartments().then(([row])=> {
+            let dept = row;
+            const deptChoices = dept.map(({id,name})=>({
+                name:name,
+                value:id
+            }))
+            inquirer.prompt ([
+                {
+                    type:'list',
+                    name:'id',
+                    message:'Which Department would you like to remove?',
+                    choices:deptChoices
+                }
+            ])
+            .then(id=>{
+                run.removeDept(id).then(()=>
+                console.log(`Department removed from database.`))
+                .then(()=>loadOut());
+            })
+        })
+    }
+
     
 
-
-
-
 loadOut();
-
-
 // create prompt for first and last name
     // .then arrow function form res and save the name as var
     // run function to find all the roles and create array of choices
