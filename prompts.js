@@ -57,6 +57,26 @@ function loadOut() {
             value:'remove dept'
         },
         {
+            name:'Update Employee',
+            value:'update employee'
+        },
+        {
+            name:'Update managers',
+            value:'update manager'
+        },
+        {
+            name:'View Employee by manager',
+            value:'view employee by manager'
+        },
+        {
+            name:'View Employee by department',
+            value:'view employee by dept'
+        },
+        {
+            name:'See companies budget',
+            value:'budget'
+        },
+        {
             name: 'Quit',
             value:'quit'
         }
@@ -97,9 +117,21 @@ function loadOut() {
             case 'remove dept':deleteDepartmnet();
                 break;
 
-            case 'alter_employee':
+            case 'update employee':updateEmployee();
+                break;
 
-            break;
+            case 'update manager':updateManager();
+                break;
+
+            case 'view employee by manager':EmployeeByManager();
+                break;
+
+            case 'view employee by dept':EmployeeByDept();
+                break;
+
+            case 'budget':budget();
+                break;
+
             default:console.log(process.exit())
         }
     })
@@ -301,16 +333,150 @@ function addEmployee() {
         })
     }
 
+    function updateEmployee() {
+        run.viewEmployees().then(([row])=> {
+            let employee = row;
+            const employeeChoices = employee.map(({id,first_name})=>({
+                name:first_name,
+                value:id
+            }))
+            inquirer.prompt ([
+                {
+                    type:'list',
+                    name:'employee_id',
+                    message:'Select employee to update.',
+                    choices:employeeChoices
+                }
+            ])
+            .then((res)=>{
+                let employee_id = res.employee_id;
+                run.viewRoles().then(([row])=>{
+                    let roles = row;
+                    const roleChoices = roles.map(({title,id})=>({
+                        name:title,
+                        value:id
+                    }))
+                    inquirer.prompt([
+                        {
+                            type:'list',
+                            name:'id',
+                            message:'What is the role for the new employee?',
+                            choices:roleChoices
+                }
+            ])
+            .then((res)=>{
+                let roles_id = res.id;
+                run.updateEmployeeRole(roles_id,employee_id).then(()=>
+                console.log('Employee role has been updated.'))
+                .then(()=>loadOut());
+            })
+        })
+                
+            })
+        })
+    }
     
+    function updateManager() {
+        run.viewEmployees().then(([row])=> {
+            let employee = row;
+            const employeeChoices = employee.map(({id,first_name})=>({
+                name:first_name,
+                value:id
+            }))
+            inquirer.prompt ([
+                {
+                    type:'list',
+                    name:'employee_id',
+                    message:'Select employee to update.',
+                    choices:employeeChoices
+                }
+            ])
+            .then((res)=>{
+                let employee_id = res.employee_id;
+                run.viewAllMang().then(([row])=>{
+                    let manager = row;
+                    const managerChoices = manager.map(({title,id})=>({
+                        name:title,
+                        value:id
+                    }))
+                    inquirer.prompt([
+                        {
+                            type:'list',
+                            name:'id',
+                            message:'Wh0 is the new manager for the employee?',
+                            choices:managerChoices
+                }
+            ])
+            .then((res)=>{
+                let manager_id = res.id;
+                run.updateEmpManager(manager_id,employee_id).then(()=>
+                console.log('Employee role has been updated.'))
+                .then(()=>loadOut());
+            })
+        })
+                
+            })
+        })
+    }
+
+    function EmployeeByManager() {
+        run.viewAllMang().then(([row])=>{
+            let manager = row;
+            const managerChoices = manager.map(({first_name,id})=>({
+                name:first_name,
+                value:id
+            }))
+            inquirer.prompt([
+                {
+                    type:'list',
+                    name:'id',
+                    message:'Wh0 is the new manager for the employee?',
+                    choices:managerChoices
+        }
+    ])
+    .then((res)=>{
+        let manager_id = res.id;
+        run.viewEmpByMang(manager_id).then(([row])=>{
+        let manager = row;
+        console.log('\n');
+    console.table(manager)})
+    .then(()=>loadOut());
+    })
+})
+    }
+
+    function EmployeeByDept() {
+        run.viewDepartments().then(([row])=> {
+            let dept = row;
+            const deptChoices = dept.map(({id,name})=>({
+                name:name,
+                value:id
+            }))
+            inquirer.prompt ([
+                {
+                    type:'list',
+                    name:'id',
+                    message:'Which Department would you like to remove?',
+                    choices:deptChoices
+                }
+            ])
+            .then(res=>{
+                let department_id = res.id
+                run.viewEmpByDept(department_id).then(([row])=>{
+                    let dept = row;
+                console.log('\n');
+                console.table(dept)})
+                .then(()=>loadOut());
+            })
+        })
+    }
+
+    function budget() {
+        run.viewDeptBudget().then(([line])=>{
+            let budget =line;
+        console.log('\n');
+    console.table(budget)})
+    .then(()=>loadOut());
+    }
 
 loadOut();
-// create prompt for first and last name
-    // .then arrow function form res and save the name as var
-    // run function to find all the roles and create array of choices
-        // run pormpt a to ask employee role with role as choices
-        // take res and save role_id as var
-        // run function to find all employees and create array of manger choices
-        // add an option of none for manager status
-        // create prompts asking for manager
-        // .then to build an obj to create an employee 
-        // pass obj to create employee function
